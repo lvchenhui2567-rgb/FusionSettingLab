@@ -1,0 +1,1710 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fusion Setting 属性编辑器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230b0d10'/%3E%3Cpath d='M15 14h34v9H25v8h19v9H25v10H15z' fill='%23ffb224'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0d10;
+      --panel: #12161b;
+      --panel-2: #181d23;
+      --line: #29313a;
+      --muted: #87929f;
+      --text: #eef2f5;
+      --accent: #ffb224;
+      --accent-2: #ff7a18;
+      --green: #50d890;
+      --red: #ff6b6b;
+      --blue: #68b5ff;
+      --shadow: 0 18px 50px rgba(0, 0, 0, .28);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% -20%, rgba(255, 178, 36, .12), transparent 34%),
+        linear-gradient(135deg, #090b0e, #0e1216 58%, #090b0e);
+      color: var(--text);
+      font: 14px/1.5 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+
+    .app { height: 100%; display: grid; grid-template-rows: 62px 1fr; }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 12, 15, .88);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 310px; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center;
+      border: 1px solid rgba(255, 178, 36, .45);
+      background: linear-gradient(145deg, rgba(255,178,36,.2), rgba(255,122,24,.08));
+      box-shadow: 0 0 28px rgba(255, 178, 36, .12);
+      font-weight: 900; color: var(--accent);
+    }
+    .brand strong { display: block; letter-spacing: .04em; }
+    .brand span { display: block; color: var(--muted); font-size: 11px; }
+    .file-meta { min-width: 0; flex: 1; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top-actions { display: flex; gap: 8px; }
+    .drfx-category { width: 112px; padding: 7px 8px; border: 1px solid var(--line); background: #0d1115; color: var(--text); }
+
+    .btn {
+      min-height: 34px;
+      padding: 7px 13px;
+      border: 1px solid var(--line);
+      background: #151a20;
+      cursor: pointer;
+      transition: .16s ease;
+    }
+    .btn:hover:not(:disabled) { border-color: #46515d; transform: translateY(-1px); }
+    .btn:disabled { opacity: .38; cursor: not-allowed; }
+    .btn.primary { border-color: #d98710; background: linear-gradient(135deg, #e79716, #ff7a18); color: #171008; font-weight: 750; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { color: #ffaaa6; }
+
+    .workspace { min-height: 0; display: grid; grid-template-columns: 34% 39% 27%; gap: 1px; background: var(--line); }
+    .column { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: rgba(15,18,22,.98); }
+    .column-head { padding: 16px 18px 13px; border-bottom: 1px solid var(--line); }
+    .column-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .column-title h2 { margin: 0; font-size: 15px; letter-spacing: .03em; }
+    .count { color: var(--accent); font: 11px Consolas, monospace; }
+    .subtle { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .scroll { min-height: 0; overflow: auto; }
+
+    .empty-stage {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+    .drop-card {
+      width: min(650px, 92%);
+      padding: 56px 36px;
+      border: 1px dashed #4a5560;
+      background: rgba(19, 23, 28, .8);
+      text-align: center;
+      box-shadow: var(--shadow);
+      transition: .18s ease;
+    }
+    .drop-card.dragover { border-color: var(--accent); background: rgba(255,178,36,.07); transform: scale(1.01); }
+    .drop-icon { margin: 0 auto 18px; width: 62px; height: 62px; display: grid; place-items: center; border: 1px solid #4b3a20; color: var(--accent); font-size: 28px; }
+    .drop-card h1 { margin: 0 0 8px; font-size: 24px; }
+    .drop-card p { margin: 0 auto 22px; max-width: 480px; color: var(--muted); }
+    .privacy { margin-top: 18px; color: #66717d; font-size: 11px; }
+
+    .search-wrap { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .search, .field {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #0d1115;
+      color: var(--text);
+      outline: none;
+    }
+    .search { padding: 9px 11px; }
+    .search:focus, .field:focus { border-color: #a96d18; box-shadow: 0 0 0 2px rgba(255,178,36,.08); }
+
+    .tree { padding: 10px 10px 24px; }
+    .tree, .controls-list { flex: 1; }
+    .node { margin-bottom: 7px; border: 1px solid var(--line); background: #12171c; }
+    .node-head { width: 100%; display: flex; align-items: center; gap: 9px; padding: 10px 11px; border: 0; background: transparent; cursor: pointer; text-align: left; }
+    .node-head:hover { background: #181e24; }
+    .chev { color: var(--muted); width: 12px; transition: transform .15s; }
+    .node.open .chev { transform: rotate(90deg); }
+    .node-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 650; }
+    .node-type { color: var(--blue); font: 10px Consolas, monospace; }
+    .node-path { padding: 0 12px 8px 32px; color: #697582; font: 10px Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .params { display: none; border-top: 1px solid var(--line); padding: 6px; }
+    .node.open .params { display: block; }
+    .param {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 8px 7px 27px;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+    .param:hover { background: #1a2026; border-color: #252d35; }
+    .param.selected { color: #705224; background: rgba(255,178,36,.08); }
+    .param-main { min-width: 0; }
+    .param-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d7dde3; }
+    .param-meta { color: #66717d; font: 10px Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pill { border: 1px solid #33404b; padding: 1px 6px; color: #83909d; font: 9px Consolas, monospace; }
+    .param.selected .pill { border-color: #74531f; color: var(--accent); }
+
+    .layout-toolbar { display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .element-toolbar { display: flex; flex-wrap: wrap; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #101419; }
+    .element-toolbar .btn { flex: 1; min-width: 92px; }
+    .host-row { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; width: 100%; color: var(--muted); font-size: 11px; }
+    .layout-toolbar .field { padding: 8px 9px; }
+    .layout-toolbar select { max-width: 150px; }
+    .controls-list { padding: 10px 12px 80px; }
+    .controls-empty { margin: 24px 4px; padding: 35px 22px; border: 1px dashed #39434d; text-align: center; color: var(--muted); }
+    .control-card {
+      position: relative;
+      display: grid;
+      grid-template-columns: 28px minmax(140px, 1fr) minmax(98px, .65fr) 34px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 7px;
+      padding: 9px;
+      border: 1px solid var(--line);
+      background: #14191f;
+      box-shadow: 0 5px 14px rgba(0,0,0,.12);
+    }
+    .control-card.element { border-color: #4b3a20; background: linear-gradient(135deg, rgba(255,178,36,.08), #14191f 58%); }
+    .control-card.label { grid-template-columns: 28px minmax(140px, 1fr) 74px 30px 34px; }
+    .control-card.label .source-line { grid-column: 2 / 5; }
+    .control-card.separator { min-height: 52px; }
+    .control-card.separator .remove { grid-column: 4; grid-row: 1; }
+    .separator-line { grid-column: 2 / 4; height: 1px; background: linear-gradient(90deg, transparent, #697582 8%, #697582 92%, transparent); }
+    .message-text { grid-column: 2 / 4; min-height: 58px; resize: vertical; line-height: 1.5; }
+    .control-card.child-hidden { display: none; }
+    .element-badge { color: var(--accent); font: 10px Consolas, monospace; }
+    .label-toggle { border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 16px; }
+    .label-count { width: 74px; }
+    .logo-preview { grid-column: 2 / 4; max-height: 58px; max-width: 220px; object-fit: contain; background: #0b0e11; padding: 4px; border: 1px solid var(--line); }
+    .url-field { grid-column: 2 / 4; }
+    .control-card.dragging { opacity: .38; }
+    .control-card.drop-before::before, .control-card.drop-after::after {
+      content: ""; position: absolute; left: 8px; right: 8px; height: 2px; background: var(--accent); box-shadow: 0 0 10px rgba(255,178,36,.5);
+    }
+    .control-card.drop-before::before { top: -5px; }
+    .control-card.drop-after::after { bottom: -5px; }
+    .drag-handle { cursor: grab; color: #697582; text-align: center; font-size: 18px; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    .field { padding: 7px 8px; min-width: 0; }
+    .source-line { grid-column: 2 / 4; margin-top: -3px; color: #697582; font: 10px Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .remove { border: 0; background: transparent; color: #73808c; cursor: pointer; font-size: 18px; }
+    .remove:hover { color: var(--red); }
+
+    .tabs { display: flex; border-bottom: 1px solid var(--line); }
+    .tab { flex: 1; padding: 11px 8px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); cursor: pointer; }
+    .tab.active { color: var(--accent); border-color: var(--accent); background: rgba(255,178,36,.04); }
+    .inspector { min-height: 0; display: flex; flex-direction: column; }
+    .tab-panel { display: none; min-height: 0; flex: 1; }
+    .tab-panel.active { display: flex; flex-direction: column; }
+    .summary { padding: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { padding: 11px; border: 1px solid var(--line); background: #12171c; }
+    .stat span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .stat strong { display: block; margin-top: 4px; font: 17px Consolas, monospace; }
+    .validation { padding: 0 14px 14px; }
+    .check { display: flex; gap: 9px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid var(--line); background: #12171c; }
+    .check.ok { color: #a9e7c5; }
+    .check.warn { color: #ffd38a; }
+    .check.error { color: #ffaaa6; border-color: #5f3030; }
+    .check small { color: var(--muted); display: block; }
+
+    .preview-panel { background: #202328; }
+    .preview-notice { padding: 9px 12px; border-bottom: 1px solid #343a40; background: #181b1f; color: #8f979f; font-size: 10px; line-height: 1.45; }
+    .preview-pages { display: flex; flex-wrap: wrap; border-bottom: 1px solid #111519; background: #1d2024; }
+    .preview-page { flex: 1 1 72px; min-width: 0; padding: 9px 6px 8px; border: 0; border-right: 1px solid #15181b; border-bottom: 2px solid transparent; background: transparent; color: #8f959b; cursor: pointer; font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-page.active { border-bottom-color: #e39234; background: #282c30; color: #eceeef; }
+    .preview-body { flex: 1; min-height: 0; overflow: auto; padding: 11px 12px 30px; background: #25282c; }
+    .preview-empty { margin: 22px 0; padding: 24px 14px; border: 1px dashed #4b5055; color: #90979d; text-align: center; font-size: 11px; }
+    .preview-label { display: flex; align-items: center; gap: 7px; width: 100%; margin: 10px 0 7px; padding: 0; border: 0; background: transparent; color: #e3e5e7; cursor: pointer; text-align: left; font-size: 11px; font-weight: 650; }
+    .preview-label::after { content: ""; height: 1px; flex: 1; background: #4b5055; }
+    .preview-label .arrow { width: 11px; color: #bfc3c6; }
+    .preview-row { display: grid; grid-template-columns: minmax(76px, 42%) minmax(0, 1fr); align-items: center; gap: 9px; min-height: 31px; font-size: 10.5px; }
+    .preview-name { min-width: 0; color: #c7cbce; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-control { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .preview-input { min-width: 0; height: 22px; border: 1px solid #41474c; background: #191c1f; color: #dde0e2; outline: none; font-size: 10px; }
+    .preview-input:focus { border-color: #a96d18; }
+    .preview-number { width: 56px; padding: 2px 5px; text-align: right; }
+    .preview-text { width: 100%; padding: 2px 6px; }
+    .preview-range { min-width: 32px; flex: 1; accent-color: #d98a32; }
+    .preview-check { width: 28px; height: 15px; margin: 0; accent-color: #d98a32; }
+    .preview-color { width: 100%; height: 22px; padding: 1px 2px; }
+    .preview-readonly { width: 100%; padding: 3px 6px; border: 1px solid #3e4449; background: #1c1f22; color: #9fa6ac; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-approx { flex: none; color: #c58a44; font-size: 9px; }
+    .preview-separator { height: 1px; margin: 8px 0; background: linear-gradient(90deg, transparent, #5a6066 8%, #5a6066 92%, transparent); }
+    .preview-message { margin: 7px 0; padding: 7px 8px; border-left: 2px solid #777e85; background: #1d2023; color: #a5abb0; font-size: 10px; line-height: 1.5; white-space: pre-wrap; }
+    .preview-logo { display: grid; place-items: center; min-height: 38px; margin: 8px 0; padding: 5px; background: #191c1f; border: 1px solid #383e43; }
+    .preview-logo img { display: block; max-width: 100%; max-height: 72px; object-fit: contain; }
+    .preview-logo span { color: #8d949a; font-size: 10px; }
+    .preview-button { width: 100%; min-height: 25px; margin: 5px 0; border: 1px solid #51575c; background: linear-gradient(#3b3f43, #292d31); color: #e1e4e6; cursor: pointer; font-size: 10.5px; }
+    .preview-button:active, .preview-button.pressed { background: linear-gradient(#24272a, #35393d); color: var(--accent); }
+
+    .code-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    .code {
+      flex: 1;
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      background: #090c0f;
+      color: #bdc7d0;
+      font: 11px/1.65 Consolas, "Microsoft YaHei", monospace;
+      white-space: pre;
+      tab-size: 4;
+    }
+    .diff-old { color: #ff9c99; background: rgba(255,107,107,.07); }
+    .diff-new { color: #8de4b3; background: rgba(80,216,144,.07); }
+
+    .toast {
+      position: fixed; right: 20px; bottom: 20px; z-index: 30;
+      max-width: 390px; padding: 12px 15px;
+      border: 1px solid #46515d; background: #161c22; box-shadow: var(--shadow);
+      opacity: 0; transform: translateY(10px); pointer-events: none; transition: .2s ease;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.error { border-color: #7b3939; color: #ffc0bd; }
+
+    @media (max-width: 1050px) {
+      body { overflow: auto; }
+      .app { height: auto; min-height: 100%; }
+      .workspace { grid-template-columns: 1fr; }
+      .column { min-height: 560px; }
+      .topbar { position: sticky; top: 0; z-index: 10; }
+    }
+    @media (max-width: 700px) {
+      .topbar { flex-wrap: wrap; gap: 9px; height: auto; padding: 10px 12px; }
+      .brand { min-width: 0; flex: 1 1 250px; }
+      .brand span { display: none; }
+      .file-meta { flex: 1 1 100%; order: 3; }
+      .top-actions { flex: 1 1 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .top-actions .btn { width: 100%; padding-inline: 8px; }
+      .drfx-category { width: 100%; min-width: 0; }
+      #downloadDrfxBtn { grid-column: 2; }
+      .column { min-height: 480px; }
+      .layout-toolbar { flex-wrap: wrap; }
+      .layout-toolbar .field { flex: 1 1 180px; }
+      .control-card, .control-card.label {
+        grid-template-columns: 24px minmax(0, 1fr) 34px;
+      }
+      .control-card .name-field { grid-column: 2; }
+      .control-card .page-field, .control-card .label-count { grid-column: 2; grid-row: 2; width: 100%; }
+      .control-card .remove { grid-column: 3; grid-row: 1; }
+      .control-card.separator .remove { grid-column: 3; grid-row: 1; }
+      .control-card.separator .separator-line { grid-column: 2; }
+      .control-card.label .label-toggle { grid-column: 3; grid-row: 2; }
+      .control-card .source-line, .control-card.label .source-line { grid-column: 2 / 4; }
+      .logo-preview, .url-field { grid-column: 2 / 4; width: 100%; max-width: 100%; }
+      .element-toolbar .btn { min-width: calc(50% - 4px); }
+      .preview-row { grid-template-columns: minmax(68px, 38%) minmax(0, 1fr); gap: 7px; }
+      .preview-body { padding-inline: 9px; }
+      .preview-number { width: 50px; }
+      .toast { left: 12px; right: 12px; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">FS</div>
+        <div><strong>Fusion Setting 属性编辑器</strong><span>无损调整公开属性，不重写内部节点</span></div>
+      </div>
+      <div id="fileMeta" class="file-meta">尚未打开文件</div>
+      <div class="top-actions">
+        <input id="fileInput" type="file" accept=".setting,.txt" hidden>
+        <button id="openBtn" class="btn">打开文件</button>
+        <button id="resetBtn" class="btn ghost" disabled>恢复原始</button>
+        <button id="downloadBtn" class="btn primary" disabled>下载修改文件</button>
+        <select id="drfxCategory" class="drfx-category" aria-label="DRFX 分类">
+          <option value="Effects">Effects</option>
+          <option value="Generators">Generators</option>
+          <option value="Titles">Titles</option>
+          <option value="Transitions">Transitions</option>
+        </select>
+        <button id="downloadDrfxBtn" class="btn primary" disabled>打包 DRFX</button>
+      </div>
+    </header>
+
+    <main id="emptyStage" class="empty-stage">
+      <div id="dropCard" class="drop-card">
+        <div class="drop-icon">⇩</div>
+        <h1>拖入 DaVinci Resolve `.setting` 文件</h1>
+        <p>工具会在本地浏览器中解析节点和公开属性。普通属性仅修改顶层公开 Inputs；特殊元素只额外修改所选宿主节点的局部定义。</p>
+        <button id="emptyOpenBtn" class="btn primary">选择文件</button>
+        <div class="privacy">文件不会上传。所有处理均在当前浏览器中完成。</div>
+      </div>
+    </main>
+
+    <main id="workspace" class="workspace" hidden>
+      <section class="column">
+        <div class="column-head">
+          <div class="column-title"><h2>节点与属性</h2><span id="nodeCount" class="count"></span></div>
+          <div class="subtle">点击属性可添加到公开 Controls</div>
+        </div>
+        <div class="search-wrap"><input id="searchInput" class="search" placeholder="搜索节点、类型或属性"></div>
+        <div id="nodeTree" class="tree scroll"></div>
+      </section>
+
+      <section class="column">
+        <div class="column-head">
+          <div class="column-title"><h2>已公开属性</h2><span id="controlCount" class="count"></span></div>
+          <div class="subtle">拖动排序，可修改显示名和所属页面</div>
+        </div>
+        <div class="layout-toolbar">
+          <input id="newPageInput" class="field" placeholder="新页面名，例如 Text">
+          <button id="addPageBtn" class="btn">添加页面</button>
+        </div>
+        <div class="element-toolbar">
+          <div class="host-row"><span>元素宿主节点</span><select id="hostNodeSelect" class="field"></select></div>
+          <button id="addLabelBtn" class="btn">+ 可展开 Label</button>
+          <button id="addSeparatorBtn" class="btn">+ 分隔线</button>
+          <button id="addMessageBtn" class="btn">+ Message</button>
+          <button id="addLogoBtn" class="btn">+ 个人 Logo</button>
+          <button id="addWebsiteBtn" class="btn">+ 网站按钮</button>
+          <input id="logoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+        <div id="controlsList" class="controls-list scroll"></div>
+      </section>
+
+      <section class="column inspector">
+        <div class="tabs">
+          <button class="tab" data-tab="preview">预览</button>
+          <button class="tab active" data-tab="check">检查</button>
+          <button class="tab" data-tab="diff">变更</button>
+          <button class="tab" data-tab="code">结果</button>
+        </div>
+        <div id="previewPanel" class="tab-panel preview-panel"><div class="preview-notice">近似 Inspector 预览 · 所有操作仅影响预览，不修改模板或导出结果</div><div id="previewPages" class="preview-pages"></div><div id="previewBody" class="preview-body"></div></div>
+        <div id="checkPanel" class="tab-panel active">
+          <div id="summary" class="summary"></div>
+          <div id="validation" class="validation scroll"></div>
+        </div>
+        <div id="diffPanel" class="tab-panel"><div class="code-toolbar"><span>公开 Inputs 与特殊元素补丁摘要</span></div><pre id="diffCode" class="code"></pre></div>
+        <div id="codePanel" class="tab-panel"><div class="code-toolbar"><span>完整导出结果</span><button id="copyBtn" class="btn">复制</button></div><pre id="resultCode" class="code"></pre></div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    "use strict";
+
+    const state = {
+      fileName: "",
+      original: "",
+      result: "",
+      analysis: null,
+      controls: [],
+      pages: ["Controls"],
+      search: "",
+      draggedIndex: null,
+      hostNodeName: "",
+      lastPatches: []
+    };
+
+    const previewState = {
+      page: "Controls",
+      expandedLabels: new Map(),
+      values: new Map(),
+      pressedButton: ""
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const fileInput = $("fileInput");
+    const emptyStage = $("emptyStage");
+    const workspace = $("workspace");
+    const nodeTree = $("nodeTree");
+    const controlsList = $("controlsList");
+
+    function toast(message, error = false) {
+      const el = $("toast");
+      el.textContent = message;
+      el.className = `toast show${error ? " error" : ""}`;
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => el.className = "toast", 2600);
+    }
+
+    function isSpace(ch) { return /\s/.test(ch || ""); }
+    function isIdentStart(ch) { return /[A-Za-z_]/.test(ch || ""); }
+    function isIdent(ch) { return /[A-Za-z0-9_.]/.test(ch || ""); }
+
+    function skipString(text, pos) {
+      const quote = text[pos++];
+      while (pos < text.length) {
+        if (text[pos] === "\\") { pos += 2; continue; }
+        if (text[pos] === quote) return pos + 1;
+        pos++;
+      }
+      throw new Error("字符串没有闭合");
+    }
+
+    function longBracketLevel(text, pos) {
+      if (text[pos] !== "[") return -1;
+      let i = pos + 1;
+      while (text[i] === "=") i++;
+      return text[i] === "[" ? i - pos - 1 : -1;
+    }
+
+    function skipLongBracket(text, pos) {
+      const level = longBracketLevel(text, pos);
+      if (level < 0) return pos;
+      const close = "]" + "=".repeat(level) + "]";
+      const end = text.indexOf(close, pos + level + 2);
+      if (end < 0) throw new Error("长字符串或块注释没有闭合");
+      return end + close.length;
+    }
+
+    function skipTrivia(text, pos, end = text.length) {
+      while (pos < end) {
+        if (isSpace(text[pos])) { pos++; continue; }
+        if (text[pos] === "-" && text[pos + 1] === "-") {
+          const blockPos = pos + 2;
+          if (longBracketLevel(text, blockPos) >= 0) {
+            pos = skipLongBracket(text, blockPos);
+          } else {
+            const lineEnd = text.indexOf("\n", pos + 2);
+            pos = lineEnd < 0 ? end : lineEnd + 1;
+          }
+          continue;
+        }
+        break;
+      }
+      return pos;
+    }
+
+    function findMatching(text, openPos, open = "{", close = "}") {
+      let depth = 0;
+      for (let i = openPos; i < text.length; i++) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") { i = skipString(text, i) - 1; continue; }
+        if (ch === "[" && longBracketLevel(text, i) >= 0) { i = skipLongBracket(text, i) - 1; continue; }
+        if (ch === "-" && text[i + 1] === "-") { i = skipTrivia(text, i) - 1; continue; }
+        if (ch === open) depth++;
+        if (ch === close && --depth === 0) return i;
+      }
+      throw new Error(`没有找到与 ${open} 匹配的 ${close}`);
+    }
+
+    function decodeQuoted(raw) {
+      try {
+        if (raw[0] === '"') return JSON.parse(raw);
+      } catch (_) {}
+      return raw.slice(1, -1).replace(/\\([\\'"nrt])/g, (_, c) => ({n:"\n", r:"\r", t:"\t"}[c] ?? c));
+    }
+
+    function readKey(text, pos, end) {
+      pos = skipTrivia(text, pos, end);
+      const start = pos;
+      if (text[pos] === "[") {
+        let i = skipTrivia(text, pos + 1, end);
+        if (text[i] !== '"' && text[i] !== "'") return null;
+        const stringStart = i;
+        i = skipString(text, i);
+        const decoded = decodeQuoted(text.slice(stringStart, i));
+        i = skipTrivia(text, i, end);
+        if (text[i] !== "]") return null;
+        return { start, end: i + 1, raw: text.slice(start, i + 1), name: decoded };
+      }
+      if (!isIdentStart(text[pos])) return null;
+      pos++;
+      while (pos < end && /[A-Za-z0-9_]/.test(text[pos])) pos++;
+      return { start, end: pos, raw: text.slice(start, pos), name: text.slice(start, pos) };
+    }
+
+    function scanValueEnd(text, pos, end) {
+      const stack = [];
+      for (let i = pos; i < end; i++) {
+        const ch = text[i];
+        if (ch === '"' || ch === "'") { i = skipString(text, i) - 1; continue; }
+        if (ch === "[" && longBracketLevel(text, i) >= 0) { i = skipLongBracket(text, i) - 1; continue; }
+        if (ch === "-" && text[i + 1] === "-") { i = skipTrivia(text, i) - 1; continue; }
+        if (ch === "{" || ch === "(" || ch === "[") stack.push(ch);
+        else if (ch === "}" || ch === ")" || ch === "]") stack.pop();
+        else if (ch === "," && stack.length === 0) return { valueEnd: i, assignmentEnd: i + 1 };
+      }
+      return { valueEnd: end, assignmentEnd: end };
+    }
+
+    function directAssignments(text, start, end) {
+      const out = [];
+      let pos = start;
+      while (pos < end) {
+        const leadingStart = pos;
+        pos = skipTrivia(text, pos, end);
+        while (text[pos] === ",") pos = skipTrivia(text, pos + 1, end);
+        if (pos >= end) break;
+        const key = readKey(text, pos, end);
+        if (!key) { pos++; continue; }
+        let eq = skipTrivia(text, key.end, end);
+        if (text[eq] !== "=") { pos = key.end; continue; }
+        const valueStart = skipTrivia(text, eq + 1, end);
+        const bounds = scanValueEnd(text, valueStart, end);
+        out.push({
+          key,
+          leadingStart,
+          start: key.start,
+          valueStart,
+          valueEnd: bounds.valueEnd,
+          end: bounds.assignmentEnd,
+          raw: text.slice(key.start, bounds.assignmentEnd)
+        });
+        pos = bounds.assignmentEnd;
+      }
+      return out;
+    }
+
+    function valueOperator(text, assignment) {
+      let pos = skipTrivia(text, assignment.valueStart, assignment.valueEnd);
+      if (text[pos] === "{") {
+        const close = findMatching(text, pos);
+        if (close > assignment.valueEnd) return null;
+        return { type: "", open: pos, close, bodyStart: pos + 1, bodyEnd: close };
+      }
+      const start = pos;
+      if (!isIdentStart(text[pos])) return null;
+      pos++;
+      while (pos < assignment.valueEnd && isIdent(text[pos])) pos++;
+      const type = text.slice(start, pos);
+      pos = skipTrivia(text, pos, assignment.valueEnd);
+      if (type === "ordered" && text[pos] === "(") {
+        pos = findMatching(text, pos, "(", ")") + 1;
+        pos = skipTrivia(text, pos, assignment.valueEnd);
+      }
+      if (text[pos] !== "{") return null;
+      const close = findMatching(text, pos);
+      if (close > assignment.valueEnd) return null;
+      return { type, open: pos, close, bodyStart: pos + 1, bodyEnd: close };
+    }
+
+    function findMember(text, bodyStart, bodyEnd, name, expectedType = null) {
+      const matches = directAssignments(text, bodyStart, bodyEnd).filter(a => a.key.name === name);
+      if (matches.length !== 1) throw new Error(`${name} 应该出现一次，实际为 ${matches.length} 次`);
+      const op = valueOperator(text, matches[0]);
+      if (!op || (expectedType && op.type !== expectedType)) throw new Error(`${name} 的结构无法识别`);
+      return { assignment: matches[0], ...op };
+    }
+
+    function scalarValue(text, assignment) {
+      const raw = text.slice(assignment.valueStart, assignment.valueEnd).trim();
+      if ((raw[0] === '"' || raw[0] === "'") && raw[raw.length - 1] === raw[0]) return decodeQuoted(raw);
+      if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(raw)) return Number(raw);
+      if (raw === "true") return true;
+      if (raw === "false") return false;
+      const op = valueOperator(text, assignment);
+      if (op && op.type === "Input") {
+        const members = directAssignments(text, op.bodyStart, op.bodyEnd);
+        const value = members.find(m => m.key.name === "Value");
+        if (value) return scalarValue(text, value);
+      }
+      return raw.replace(/\s+/g, " ").slice(0, 80);
+    }
+
+    function getFields(text, operator) {
+      const fields = {};
+      for (const a of directAssignments(text, operator.bodyStart, operator.bodyEnd)) fields[a.key.name] = { assignment: a, value: scalarValue(text, a) };
+      return fields;
+    }
+
+    function literalKind(text, field) {
+      if (!field?.assignment) return "missing";
+      const raw = text.slice(field.assignment.valueStart, field.assignment.valueEnd).trim();
+      if ((raw[0] === '"' || raw[0] === "'") && raw[raw.length - 1] === raw[0]) return "string";
+      if (/^-?\d+(\.\d+)?([eE][+-]?\d+)?$/.test(raw)) return "number";
+      if (raw === "true" || raw === "false") return "boolean";
+      return "complex";
+    }
+
+    function previewMetadata(text, definitionFields, inputValue) {
+      const inputOp = inputValue ? valueOperator(text, inputValue) : null;
+      const inputFields = inputOp ? getFields(text, inputOp) : {};
+      const currentField = inputFields.Value;
+      const defaultField = definitionFields.INP_Default;
+      const sourceField = currentField || defaultField;
+      const defaultValue = sourceField?.value;
+      const valueKind = literalKind(text, sourceField);
+      const rangeValue = (...names) => {
+        for (const name of names) {
+          const value = definitionFields[name]?.value;
+          if (typeof value === "number" && Number.isFinite(value)) return value;
+        }
+        return null;
+      };
+      const linkedFields = ["SourceOp", "Expression", "Source", "LinkID"].some(name => inputFields[name]);
+      return {
+        controlType: String(definitionFields.INPID_InputControl?.value ?? ""),
+        dataType: String(definitionFields.LINKID_DataType?.value ?? ""),
+        integer: definitionFields.INP_Integer?.value === true,
+        min: rangeValue("INP_MinScale", "INP_MinAllowed", "INP_Min"),
+        max: rangeValue("INP_MaxScale", "INP_MaxAllowed", "INP_Max"),
+        defaultValue,
+        valueKind,
+        isLinked: linkedFields || valueKind === "complex",
+        approximate: !definitionFields.INPID_InputControl
+      };
+    }
+
+    function analyzeSetting(text) {
+      const bom = text.charCodeAt(0) === 0xFEFF ? 1 : 0;
+      const rootOpen = text.indexOf("{", bom);
+      if (rootOpen < 0) throw new Error("未找到根表");
+      const rootClose = findMatching(text, rootOpen);
+      const rootTools = findMember(text, rootOpen + 1, rootClose, "Tools", "ordered");
+      const wrappers = directAssignments(text, rootTools.bodyStart, rootTools.bodyEnd)
+        .map(a => ({ assignment: a, operator: valueOperator(text, a) }))
+        .filter(x => x.operator && ["GroupOperator", "MacroOperator"].includes(x.operator.type));
+      if (wrappers.length !== 1) throw new Error(`根 Tools 中需要且只能有一个 GroupOperator/MacroOperator，当前为 ${wrappers.length} 个`);
+      const wrapper = wrappers[0];
+      const publicInputs = findMember(text, wrapper.operator.bodyStart, wrapper.operator.bodyEnd, "Inputs", "ordered");
+      const internalTools = findMember(text, wrapper.operator.bodyStart, wrapper.operator.bodyEnd, "Tools", "ordered");
+      const nodes = [];
+      scanNodes(text, internalTools.bodyStart, internalTools.bodyEnd, [], nodes);
+      const nodeByName = new Map(nodes.map(node => [node.name, node]));
+      const inputsAssignments = directAssignments(text, publicInputs.bodyStart, publicInputs.bodyEnd);
+      const controls = inputsAssignments.map((a, index) => {
+        const op = valueOperator(text, a);
+        if (!op || op.type !== "InstanceInput") return null;
+        const fields = getFields(text, op);
+        const sourceOp = String(fields.SourceOp?.value ?? "");
+        const source = String(fields.Source?.value ?? "");
+        const host = nodeByName.get(sourceOp);
+        const definition = host?.userControls?.find(item => item.key.name === source);
+        const definitionOp = definition ? valueOperator(text, definition) : null;
+        const definitionFields = definitionOp ? getFields(text, definitionOp) : {};
+        const inputValue = host?.inputAssignments?.find(item => item.key.name === source);
+        const controlType = String(definitionFields.INPID_InputControl?.value ?? "");
+        const linksName = String(definitionFields.LINKS_Name?.value ?? "");
+        let kind = "control";
+        if (controlType === "LabelControl" && definitionFields.LBLC_DropDownButton?.value === true) kind = "label";
+        else if (controlType === "LabelControl" && /<img\s/i.test(linksName)) kind = "logo";
+        else if (controlType === "LabelControl" && Number(definitionFields.IC_ControlPage?.value) === -1) kind = "message";
+        else if (controlType === "SeparatorControl") kind = "separator";
+        else if (controlType === "ButtonControl") kind = "website";
+        const displayName = kind === "separator"
+          ? "Separator"
+          : fields.Name ? String(fields.Name.value) : (kind !== "control" && linksName && kind !== "logo" ? linksName : String(fields.Source?.value ?? a.key.name));
+        return {
+          id: `${Date.now()}-${index}-${Math.random()}`,
+          kind,
+          originalKey: a.key.name,
+          sourceOp,
+          source,
+          name: displayName,
+          page: fields.Page ? String(fields.Page.value) : "Controls",
+          originalName: displayName,
+          originalPage: fields.Page ? String(fields.Page.value) : "Controls",
+          hasName: Boolean(fields.Name),
+          hasPage: Boolean(fields.Page),
+          raw: text.slice(a.start, a.end),
+          assignment: a,
+          operator: op,
+          generated: false,
+          numInputs: Number(definitionFields.LBLC_NumInputs?.value ?? 0),
+          expanded: inputValue ? scalarValue(text, inputValue) !== 0 : Number(definitionFields.INP_Default?.value ?? 1) !== 0,
+          logoData: kind === "logo" ? (linksName.match(/src=['\"]([^'\"]+)/i)?.[1] ?? "") : "",
+          url: kind === "website" ? extractUrl(String(definitionFields.BTNCS_Execute?.value ?? "")) : "",
+          originalNumInputs: Number(definitionFields.LBLC_NumInputs?.value ?? 0),
+          originalExpanded: inputValue ? scalarValue(text, inputValue) !== 0 : Number(definitionFields.INP_Default?.value ?? 1) !== 0,
+          originalLogoData: kind === "logo" ? (linksName.match(/src=['\"]([^'\"]+)/i)?.[1] ?? "") : "",
+          originalUrl: kind === "website" ? extractUrl(String(definitionFields.BTNCS_Execute?.value ?? "")) : "",
+          definition,
+          inputValue,
+          preview: previewMetadata(text, definitionFields, inputValue)
+        };
+      }).filter(Boolean);
+      for (let index = 0; index < controls.length - 1; index++) {
+        const label = controls[index];
+        const separator = controls[index + 1];
+        if (label.kind === "label" && separator.kind === "separator" && label.numInputs >= 1 && label.sourceOp === separator.sourceOp) {
+          label.boundarySeparatorId = separator.id;
+          separator.boundaryLabelId = label.id;
+        }
+      }
+      return { rootOpen, rootClose, rootTools, wrapper, publicInputs, controls, nodes };
+    }
+
+    function extractUrl(script) {
+      const match = script.match(/https?:\/\/[^'\"\s)]+/i);
+      return match ? match[0] : "";
+    }
+
+    function scanNodes(text, toolsStart, toolsEnd, parentPath, nodes) {
+      for (const a of directAssignments(text, toolsStart, toolsEnd)) {
+        const op = valueOperator(text, a);
+        if (!op) continue;
+        const path = [...parentPath, a.key.name];
+        let params = [];
+        const direct = directAssignments(text, op.bodyStart, op.bodyEnd);
+        const inputsAssignment = direct.find(x => x.key.name === "Inputs");
+        if (inputsAssignment) {
+          const inputsOp = valueOperator(text, inputsAssignment);
+          if (inputsOp && (inputsOp.type === "ordered" || inputsOp.type === "" || inputsOp.type === "Inputs")) {
+            params = parseNodeParams(text, inputsOp.bodyStart, inputsOp.bodyEnd, a.key.name, path);
+          } else if (inputsOp && inputsOp.open != null) {
+            params = parseNodeParams(text, inputsOp.bodyStart, inputsOp.bodyEnd, a.key.name, path);
+          }
+        }
+        const userControlsAssignment = direct.find(x => x.key.name === "UserControls");
+        const userControlsOp = userControlsAssignment ? valueOperator(text, userControlsAssignment) : null;
+        const inputsOp = inputsAssignment ? valueOperator(text, inputsAssignment) : null;
+        nodes.push({
+          name: a.key.name,
+          type: op.type,
+          path,
+          params,
+          assignment: a,
+          operator: op,
+          inputsAssignment,
+          inputsOp,
+          inputAssignments: inputsOp ? directAssignments(text, inputsOp.bodyStart, inputsOp.bodyEnd) : [],
+          userControlsAssignment,
+          userControlsOp,
+          userControls: userControlsOp ? directAssignments(text, userControlsOp.bodyStart, userControlsOp.bodyEnd) : []
+        });
+        if (["GroupOperator", "MacroOperator"].includes(op.type)) {
+          const toolsAssignment = direct.find(x => x.key.name === "Tools");
+          if (toolsAssignment) {
+            const childTools = valueOperator(text, toolsAssignment);
+            if (childTools) scanNodes(text, childTools.bodyStart, childTools.bodyEnd, path, nodes);
+          }
+        }
+      }
+    }
+
+    function parseNodeParams(text, start, end, nodeName, path) {
+      return directAssignments(text, start, end).map(a => {
+        const op = valueOperator(text, a);
+        if (!op || !["Input", "InstanceInput"].includes(op.type)) return null;
+        const fields = getFields(text, op);
+        return {
+          id: `${path.join("/")}::${a.key.name}`,
+          nodeName,
+          path,
+          name: a.key.name,
+          value: fields.Value?.value ?? (fields.SourceOp ? `连接 ${fields.SourceOp.value}.${fields.Source?.value ?? ""}` : ""),
+          linked: Boolean(fields.SourceOp)
+        };
+      }).filter(Boolean);
+    }
+
+    function quote(value) { return JSON.stringify(String(value)); }
+
+    function detectIndent(text, bodyStart) {
+      const after = text.slice(bodyStart).match(/^\r?\n([\t ]+)/);
+      if (after) return after[1];
+      const lineStart = text.lastIndexOf("\n", bodyStart) + 1;
+      const base = (text.slice(lineStart, bodyStart).match(/^[\t ]*/) || [""])[0];
+      return base + "\t";
+    }
+
+    function patchInstanceRaw(control, index, indent) {
+      let raw = control.raw;
+      const localAssignments = directAssignments(raw, 0, raw.length);
+      if (!localAssignments.length) throw new Error(`无法重建属性 ${control.sourceOp}.${control.source}`);
+      const outer = localAssignments[0];
+      const op = valueOperator(raw, outer);
+      if (!op) throw new Error(`属性块 ${control.originalKey} 无法识别`);
+      const replacements = [];
+      replacements.push({ start: outer.key.start, end: outer.key.end, value: `Input${index + 1}` });
+      const members = directAssignments(raw, op.bodyStart, op.bodyEnd);
+      const changedFields = [];
+      if (control.name !== control.originalName) changedFields.push(["Name", control.name]);
+      if (control.page !== control.originalPage) changedFields.push(["Page", control.page]);
+      for (const [fieldName, newValue] of changedFields) {
+        const member = members.find(m => m.key.name === fieldName);
+        if (member) replacements.push({ start: member.valueStart, end: member.valueEnd, value: quote(newValue) });
+        else {
+          const innerIndent = detectIndent(raw, op.bodyStart);
+          const lineStart = raw.lastIndexOf("\n", op.bodyEnd) + 1;
+          const closeIndent = (raw.slice(lineStart, op.bodyEnd).match(/^[\t ]*/) || [indent])[0];
+          replacements.push({ start: op.bodyEnd, end: op.bodyEnd, value: `${innerIndent}${fieldName} = ${quote(newValue)},\n${closeIndent}` });
+        }
+      }
+      replacements.sort((a, b) => b.start - a.start);
+      for (const r of replacements) raw = raw.slice(0, r.start) + r.value + raw.slice(r.end);
+      raw = raw.trim();
+      return raw.endsWith(",") ? raw : raw + ",";
+    }
+
+    function createInstanceRaw(control, index, indent) {
+      const inner = indent + "\t";
+      return `Input${index + 1} = InstanceInput {\n${inner}SourceOp = ${quote(control.sourceOp)},\n${inner}Source = ${quote(control.source)},\n${inner}Page = ${quote(control.page)},\n${inner}Name = ${quote(control.name)},\n${indent}},`;
+    }
+
+    function buildInputsBody() {
+      const info = state.analysis.publicInputs;
+      const indent = detectIndent(state.original, info.bodyStart);
+      if (!state.controls.length) return "\n" + indent.slice(0, Math.max(0, indent.length - 1));
+      const blocks = state.controls.map((control, index) => control.raw
+        ? patchInstanceRaw(control, index, indent)
+        : createInstanceRaw(control, index, indent));
+      const closingLineStart = state.original.lastIndexOf("\n", info.bodyEnd) + 1;
+      const closingIndent = (state.original.slice(closingLineStart, info.bodyEnd).match(/^[\t ]*/) || [""])[0];
+      return `\n${indent}${blocks.join(`\n${indent}`)}\n${closingIndent}`;
+    }
+
+    function patchAssignmentFields(raw, fields) {
+      const outer = directAssignments(raw, 0, raw.length)[0];
+      const op = outer && valueOperator(raw, outer);
+      if (!op) throw new Error("元素定义无法识别");
+      const members = directAssignments(raw, op.bodyStart, op.bodyEnd);
+      const replacements = [];
+      for (const [name, value] of Object.entries(fields)) {
+        const member = members.find(item => item.key.name === name);
+        if (member) replacements.push({ start: member.valueStart, end: member.valueEnd, value });
+        else {
+          const indent = detectIndent(raw, op.bodyStart);
+          const closeLine = raw.lastIndexOf("\n", op.bodyEnd) + 1;
+          const closeIndent = (raw.slice(closeLine, op.bodyEnd).match(/^[\t ]*/) || [""])[0];
+          replacements.push({ start: op.bodyEnd, end: op.bodyEnd, value: `${indent}${name} = ${value},\n${closeIndent}` });
+        }
+      }
+      replacements.sort((a, b) => b.start - a.start);
+      for (const replacement of replacements) raw = raw.slice(0, replacement.start) + replacement.value + raw.slice(replacement.end);
+      raw = raw.trim();
+      return raw.endsWith(",") ? raw : raw + ",";
+    }
+
+    function validWebsiteUrl(value) {
+      try {
+        const url = new URL(value);
+        return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+      } catch (_) { return ""; }
+    }
+
+    function buttonScript(url) {
+      const safe = validWebsiteUrl(url);
+      if (!safe) return "";
+      return `os.execute('open \"\" \"${safe}\"')\nos.execute('start \"\" \"${safe}\"')`;
+    }
+
+    function elementDefinitionRaw(control, indent) {
+      const inner = indent + "\t";
+      let fields;
+      if (control.kind === "label") fields = [
+        `INP_Default = ${control.expanded ? 1 : 0}`,
+        `LBLC_NumInputs = ${Math.max(0, Math.floor(Number(control.numInputs) || 0))}`,
+        'INPID_InputControl = "LabelControl"',
+        "LBLC_DropDownButton = true",
+        'LINKID_DataType = "Number"',
+        "INP_Passive = true",
+        "INP_External = false",
+        `LINKS_Name = ${quote(control.name)}`
+      ];
+      else if (control.kind === "logo") fields = [
+        'INPID_InputControl = "LabelControl"',
+        'LINKID_DataType = "Number"',
+        "LBLC_MultiLine = true",
+        "IC_NoLabel = true",
+        "INP_Passive = true",
+        "IC_NoReset = true",
+        "INP_External = false",
+        `LINKS_Name = [[<center><img src='${control.logoData}'/><br>]]`
+      ];
+      else if (control.kind === "separator") fields = [
+        "INP_Integer = true",
+        'INPID_InputControl = "SeparatorControl"',
+        "INP_Passive = true",
+        'LINKID_DataType = "Number"',
+        'LINKS_Name = ""'
+      ];
+      else if (control.kind === "message") fields = [
+        "INP_External = false",
+        'INPID_InputControl = "LabelControl"',
+        "IC_ControlPage = -1",
+        "INP_Passive = true",
+        'LINKID_DataType = "Number"',
+        `LINKS_Name = ${quote(control.name)}`
+      ];
+      else fields = [
+        "ICD_Width = 1",
+        "INP_Integer = false",
+        "INP_External = false",
+        'LINKID_DataType = "Number"',
+        `BTNCS_Execute = ${quote(buttonScript(control.url))}`,
+        "INP_Passive = true",
+        'INPID_InputControl = "ButtonControl"',
+        `LINKS_Name = ${quote(control.name)}`
+      ];
+      return `${control.source} = {\n${inner}${fields.join(`,\n${inner}`)},\n${indent}},`;
+    }
+
+    function patchElementDefinition(control, raw) {
+      if (control.kind === "label") return patchAssignmentFields(raw, {
+        INP_Default: control.expanded ? "1" : "0",
+        LBLC_NumInputs: String(Math.max(0, Math.floor(Number(control.numInputs) || 0))),
+        LBLC_DropDownButton: "true",
+        LINKS_Name: quote(control.name)
+      });
+      if (control.kind === "logo") return patchAssignmentFields(raw, {
+        LINKS_Name: `[[<center><img src='${control.logoData}'/><br>]]`
+      });
+      if (control.kind === "separator") return raw.trim().endsWith(",") ? raw.trim() : raw.trim() + ",";
+      if (control.kind === "message") return patchAssignmentFields(raw, {
+        IC_ControlPage: "-1",
+        LINKS_Name: quote(control.name)
+      });
+      return patchAssignmentFields(raw, {
+        BTNCS_Execute: quote(buttonScript(control.url)),
+        LINKS_Name: quote(control.name)
+      });
+    }
+
+    function buildManagedBody(info, assignments, replacementsByKey, additions) {
+      let body = state.original.slice(info.bodyStart, info.bodyEnd);
+      const replacements = assignments
+        .filter(item => replacementsByKey.has(item.key.name))
+        .map(item => ({ start: item.start - info.bodyStart, end: item.end - info.bodyStart, value: replacementsByKey.get(item.key.name) }))
+        .sort((a, b) => b.start - a.start);
+      for (const replacement of replacements) body = body.slice(0, replacement.start) + replacement.value + body.slice(replacement.end);
+      if (additions.length) {
+        const indent = detectIndent(state.original, info.bodyStart);
+        let prefix = body;
+        if (prefix.trim() && !prefix.trimEnd().endsWith(",")) prefix = prefix.trimEnd() + "," + prefix.slice(prefix.trimEnd().length);
+        if (!prefix.endsWith("\n")) prefix += "\n";
+        const lineStart = state.original.lastIndexOf("\n", info.bodyEnd) + 1;
+        const closingIndent = (state.original.slice(lineStart, info.bodyEnd).match(/^[\t ]*/) || [""])[0];
+        body = `${prefix}${indent}${additions.join(`\n${indent}`)}\n${closingIndent}`;
+      }
+      return body;
+    }
+
+    function buildInternalPatches() {
+      const patches = [];
+      const elements = state.controls.filter(control => control.kind !== "control");
+      for (const node of state.analysis.nodes) {
+        const managed = elements.filter(control => control.sourceOp === node.name);
+        if (!managed.length) continue;
+        if (!node.inputsOp || !node.userControlsOp) throw new Error(`宿主节点 ${node.name} 缺少 Inputs 或 UserControls，无法安全追加元素`);
+        const inputReplacements = new Map();
+        const inputAdditions = [];
+        const definitionReplacements = new Map();
+        const definitionAdditions = [];
+        for (const control of managed) {
+          if (control.kind === "label") {
+            if (control.inputValue && control.expanded !== control.originalExpanded) {
+              const raw = state.original.slice(control.inputValue.start, control.inputValue.end);
+              inputReplacements.set(control.source, patchAssignmentFields(raw, { Value: control.expanded ? "1" : "0" }));
+            } else if (!control.inputValue && (control.generated || control.expanded !== control.originalExpanded)) {
+              inputAdditions.push(`${control.source} = Input { Value = ${control.expanded ? 1 : 0}, },`);
+            }
+          }
+          if (control.definition) {
+            const changed = control.kind === "label"
+              ? control.name !== control.originalName || control.numInputs !== control.originalNumInputs || control.expanded !== control.originalExpanded
+              : control.kind === "logo"
+                ? control.logoData !== control.originalLogoData
+                : control.kind === "separator"
+                  ? false
+                  : control.kind === "message"
+                    ? control.name !== control.originalName
+                    : control.name !== control.originalName || control.url !== control.originalUrl;
+            if (changed) {
+              const raw = state.original.slice(control.definition.start, control.definition.end);
+              definitionReplacements.set(control.source, patchElementDefinition(control, raw));
+            }
+          } else definitionAdditions.push(elementDefinitionRaw(control, detectIndent(state.original, node.userControlsOp.bodyStart)));
+        }
+        if (inputReplacements.size || inputAdditions.length) patches.push({
+          start: node.inputsOp.bodyStart,
+          end: node.inputsOp.bodyEnd,
+          value: buildManagedBody(node.inputsOp, node.inputAssignments, inputReplacements, inputAdditions)
+        });
+        if (definitionReplacements.size || definitionAdditions.length) patches.push({
+          start: node.userControlsOp.bodyStart,
+          end: node.userControlsOp.bodyEnd,
+          value: buildManagedBody(node.userControlsOp, node.userControls, definitionReplacements, definitionAdditions)
+        });
+      }
+      return patches;
+    }
+
+    function rebuild(preserveEditor = false) {
+      if (!state.analysis) return;
+      try {
+        const { bodyStart, bodyEnd } = state.analysis.publicInputs;
+        const newBody = buildInputsBody();
+        const patches = [{ start: bodyStart, end: bodyEnd, value: newBody }, ...buildInternalPatches()].sort((a, b) => b.start - a.start);
+        state.lastPatches = patches.map(patch => ({ ...patch }));
+        let result = state.original;
+        for (const patch of patches) result = result.slice(0, patch.start) + patch.value + result.slice(patch.end);
+        state.result = result;
+        if (!preserveEditor) renderControls();
+        renderInspector();
+        if (!preserveEditor) renderTree();
+      } catch (error) {
+        toast(error.message, true);
+      }
+    }
+
+    function controlKey(c) { return `${c.sourceOp}\u0000${c.source}`; }
+    function selectedSet() { return new Set(state.controls.map(controlKey)); }
+
+    function renderTree() {
+      const selected = selectedSet();
+      const query = state.search.trim().toLowerCase();
+      const nodes = state.analysis.nodes.filter(node => {
+        if (!query) return true;
+        return [node.name, node.type, node.path.join("/"), ...node.params.map(p => p.name)].join(" ").toLowerCase().includes(query);
+      });
+      $("nodeCount").textContent = `${nodes.length} NODES`;
+      nodeTree.innerHTML = "";
+      for (const node of nodes) {
+        const matchingParams = query ? node.params.filter(p => [p.name, String(p.value)].join(" ").toLowerCase().includes(query) || node.name.toLowerCase().includes(query)) : node.params;
+        const wrapper = document.createElement("div");
+        wrapper.className = `node${query ? " open" : ""}`;
+        wrapper.innerHTML = `<button class="node-head"><span class="chev">›</span><span class="node-name" title="${escapeHtml(node.name)}">${escapeHtml(node.name)}</span><span class="node-type">${escapeHtml(node.type)}</span></button><div class="node-path">${escapeHtml(node.path.join(" / "))}</div><div class="params"></div>`;
+        wrapper.querySelector(".node-head").onclick = () => wrapper.classList.toggle("open");
+        const paramsEl = wrapper.querySelector(".params");
+        for (const param of matchingParams) {
+          const item = document.createElement("div");
+          const isSelected = selected.has(`${node.name}\u0000${param.name}`);
+          item.className = `param${isSelected ? " selected" : ""}`;
+          item.title = isSelected ? "点击移除公开属性" : "点击添加公开属性";
+          item.innerHTML = `<div class="param-main"><div class="param-name">${escapeHtml(param.name)}</div><div class="param-meta">${escapeHtml(formatValue(param.value))}</div></div><span class="pill">${param.linked ? "LINK" : isSelected ? "ADDED" : "ADD"}</span>`;
+          item.onclick = () => toggleParam(node, param);
+          paramsEl.appendChild(item);
+        }
+        nodeTree.appendChild(wrapper);
+      }
+    }
+
+    function toggleParam(node, param) {
+      const index = state.controls.findIndex(c => c.sourceOp === node.name && c.source === param.name);
+      if (index >= 0) state.controls.splice(index, 1);
+      else state.controls.push({
+        id: `${Date.now()}-${Math.random()}`,
+        originalKey: "",
+        sourceOp: node.name,
+        source: param.name,
+        name: param.name,
+        page: "Controls",
+        originalName: param.name,
+        originalPage: "Controls",
+        hasName: false,
+        hasPage: false,
+        raw: "",
+        kind: "control",
+        preview: {
+          controlType: "",
+          dataType: typeof param.value === "number" ? "Number" : "",
+          integer: typeof param.value === "number" && Number.isInteger(param.value),
+          min: null,
+          max: null,
+          defaultValue: param.value,
+          valueKind: ["string", "number", "boolean"].includes(typeof param.value) ? typeof param.value : "complex",
+          isLinked: param.linked,
+          approximate: true
+        }
+      });
+      rebuild();
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    function formatValue(value) {
+      if (typeof value === "object") return JSON.stringify(value);
+      return String(value ?? "").slice(0, 72);
+    }
+
+    function resetPreviewState() {
+      previewState.page = "Controls";
+      previewState.expandedLabels.clear();
+      previewState.values.clear();
+      previewState.pressedButton = "";
+    }
+
+    function previewEntries() {
+      const seen = new Map();
+      return state.controls.map((control, index) => {
+        const base = controlKey(control);
+        const occurrence = seen.get(base) || 0;
+        seen.set(base, occurrence + 1);
+        return { control, index, key: `${base}\u0000${occurrence}` };
+      });
+    }
+
+    function previewValue(entry) {
+      if (previewState.values.has(entry.key)) return previewState.values.get(entry.key);
+      return entry.control.preview?.defaultValue ?? "";
+    }
+
+    function previewKind(control) {
+      const preview = control.preview || {};
+      const type = preview.controlType.toLowerCase();
+      const value = preview.defaultValue;
+      if (preview.isLinked) return "readonly";
+      if (type.includes("color")) return "color";
+      if (type.includes("checkbox") || typeof value === "boolean" || (preview.integer && preview.min === 0 && preview.max === 1)) return "checkbox";
+      if (type.includes("textedit") || type.includes("textcontrol") || preview.valueKind === "string") return "text";
+      if (typeof value === "number" && preview.min != null && preview.max != null && preview.min < preview.max) return "slider";
+      if (typeof value === "number") return "number";
+      return "readonly";
+    }
+
+    function renderPreviewControl(entry) {
+      const { control, key } = entry;
+      const value = previewValue(entry);
+      const kind = previewKind(control);
+      const row = document.createElement("div");
+      row.className = "preview-row";
+      row.innerHTML = `<div class="preview-name" title="${escapeHtml(control.name)}">${escapeHtml(control.name)}</div><div class="preview-control"></div>`;
+      const target = row.querySelector(".preview-control");
+      const approximate = control.preview?.approximate || kind === "readonly";
+      if (kind === "checkbox") {
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.className = "preview-check";
+        input.checked = value === true || Number(value) !== 0;
+        input.onchange = () => previewState.values.set(key, input.checked);
+        target.appendChild(input);
+      } else if (kind === "slider") {
+        const range = document.createElement("input");
+        range.type = "range";
+        range.className = "preview-range";
+        range.min = control.preview.min;
+        range.max = control.preview.max;
+        range.step = control.preview.integer ? "1" : "any";
+        range.value = Number(value);
+        const number = document.createElement("input");
+        number.type = "number";
+        number.className = "preview-input preview-number";
+        number.min = range.min;
+        number.max = range.max;
+        number.step = range.step;
+        number.value = Number(value);
+        range.oninput = () => { number.value = range.value; previewState.values.set(key, Number(range.value)); };
+        number.oninput = () => { range.value = number.value; previewState.values.set(key, Number(number.value)); };
+        target.append(range, number);
+      } else if (kind === "number") {
+        const input = document.createElement("input");
+        input.type = "number";
+        input.className = "preview-input preview-number";
+        input.step = control.preview?.integer ? "1" : "any";
+        input.value = Number.isFinite(Number(value)) ? Number(value) : "";
+        input.oninput = () => previewState.values.set(key, Number(input.value));
+        target.appendChild(input);
+      } else if (kind === "text") {
+        const input = document.createElement("input");
+        input.className = "preview-input preview-text";
+        input.value = String(value ?? "");
+        input.oninput = () => previewState.values.set(key, input.value);
+        target.appendChild(input);
+      } else if (kind === "color") {
+        const input = document.createElement("input");
+        input.type = "color";
+        input.className = "preview-input preview-color";
+        input.value = /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : "#b56f32";
+        input.oninput = () => previewState.values.set(key, input.value);
+        target.appendChild(input);
+      } else {
+        const readonly = document.createElement("div");
+        readonly.className = "preview-readonly";
+        readonly.title = formatValue(value) || "未提供默认值";
+        readonly.textContent = formatValue(value) || "未提供默认值";
+        target.appendChild(readonly);
+      }
+      if (approximate) {
+        const badge = document.createElement("span");
+        badge.className = "preview-approx";
+        badge.title = "无法从 setting 精确还原 DaVinci 控件，仅作近似展示";
+        badge.textContent = "近似";
+        target.appendChild(badge);
+      }
+      return row;
+    }
+
+    function renderPreview() {
+      if (!state.analysis) return;
+      if (!state.pages.includes(previewState.page)) previewState.page = state.pages[0] || "Controls";
+      const pages = $("previewPages");
+      pages.innerHTML = state.pages.map(page => `<button class="preview-page${page === previewState.page ? " active" : ""}" data-page="${escapeHtml(page)}" title="${escapeHtml(page)}">${escapeHtml(page)}</button>`).join("");
+      pages.querySelectorAll(".preview-page").forEach(button => button.onclick = () => { previewState.page = button.dataset.page; renderPreview(); });
+      const body = $("previewBody");
+      body.innerHTML = "";
+      const entries = previewEntries();
+      let hiddenUntil = -1;
+      let rendered = 0;
+      for (const entry of entries) {
+        const { control, index, key } = entry;
+        const hidden = index <= hiddenUntil;
+        if (control.kind === "label") {
+          const expanded = previewState.expandedLabels.has(key) ? previewState.expandedLabels.get(key) : control.expanded;
+          if (!expanded) hiddenUntil = Math.max(hiddenUntil, index + Math.max(0, Number(control.numInputs) || 0));
+          if (control.page !== previewState.page || hidden) continue;
+          const label = document.createElement("button");
+          label.className = "preview-label";
+          label.innerHTML = `<span class="arrow">${expanded ? "▾" : "▸"}</span><span>${escapeHtml(control.name)}</span>`;
+          label.onclick = () => { previewState.expandedLabels.set(key, !expanded); renderPreview(); };
+          body.appendChild(label);
+          rendered++;
+          continue;
+        }
+        if (hidden || control.page !== previewState.page) continue;
+        if (control.kind === "separator") {
+          const separator = document.createElement("div");
+          separator.className = "preview-separator";
+          body.appendChild(separator);
+        } else if (control.kind === "message") {
+          const message = document.createElement("div");
+          message.className = "preview-message";
+          message.textContent = control.name;
+          body.appendChild(message);
+        } else if (control.kind === "logo") {
+          const logo = document.createElement("div");
+          logo.className = "preview-logo";
+          logo.innerHTML = /^data:image\/(png|jpeg|webp);base64,/i.test(control.logoData) ? `<img src="${escapeHtml(control.logoData)}" alt="${escapeHtml(control.name)}">` : `<span>${escapeHtml(control.name || "Logo")}</span>`;
+          body.appendChild(logo);
+        } else if (control.kind === "website") {
+          const button = document.createElement("button");
+          button.className = `preview-button${previewState.pressedButton === key ? " pressed" : ""}`;
+          button.textContent = control.name;
+          button.title = "预览模式不会打开网站";
+          button.onclick = () => { previewState.pressedButton = key; renderPreview(); setTimeout(() => { if (previewState.pressedButton === key) { previewState.pressedButton = ""; renderPreview(); } }, 420); };
+          body.appendChild(button);
+        } else body.appendChild(renderPreviewControl(entry));
+        rendered++;
+      }
+      if (!rendered) body.innerHTML = '<div class="preview-empty">当前页面没有可预览的公开属性</div>';
+    }
+
+    function renderControls() {
+      $("controlCount").textContent = `${state.controls.length} ITEMS`;
+      controlsList.innerHTML = "";
+      if (!state.controls.length) {
+        controlsList.innerHTML = '<div class="controls-empty">还没有公开属性。请从左侧节点中点击需要的属性。</div>';
+        return;
+      }
+      let hiddenUntil = -1;
+      for (const [index, control] of state.controls.entries()) {
+        const card = document.createElement("div");
+        const isElement = control.kind !== "control";
+        const hidden = index <= hiddenUntil;
+        card.className = `control-card${isElement ? ` element ${control.kind}` : ""}${hidden ? " child-hidden" : ""}`;
+        card.draggable = true;
+        card.dataset.index = index;
+        const pageOptions = state.pages.map(page => `<option${page === control.page ? " selected" : ""}>${escapeHtml(page)}</option>`).join("");
+        if (control.kind === "label") {
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><input class="field name-field" value="${escapeHtml(control.name)}" aria-label="Label 名称"><input class="field label-count" type="number" min="0" max="999" value="${control.numInputs}" title="包含后续项目数"><button class="label-toggle" title="预览展开/收起">${control.expanded ? "▾" : "▸"}</button><button class="remove" title="移除">×</button><div class="source-line"><span class="element-badge">LABEL</span> · 包含后续 ${control.numInputs} 项${control.boundarySeparatorId ? " · 已附带默认横线" : ""} · ${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}</div>`;
+          if (!control.expanded) hiddenUntil = Math.max(hiddenUntil, index + Math.max(0, Number(control.numInputs) || 0));
+        } else if (control.kind === "separator") {
+          const paired = Boolean(control.boundaryLabelId);
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><div class="separator-line"></div><button class="remove" title="移除">×</button><div class="source-line"><span class="element-badge">SEPARATOR</span> · ${paired ? "Label 默认横线" : "独立分隔线"} · ${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}</div>`;
+        } else if (control.kind === "message") {
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><textarea class="field name-field message-text" aria-label="Message 内容" placeholder="输入给用户显示的信息">${escapeHtml(control.name)}</textarea><button class="remove" title="移除">×</button><div class="source-line"><span class="element-badge">MESSAGE</span> · 只读信息 · ${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}</div>`;
+        } else if (control.kind === "logo") {
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><input class="field name-field" value="${escapeHtml(control.name)}" aria-label="Logo 名称"><select class="field page-field" aria-label="Logo 页面">${pageOptions}</select><button class="remove" title="移除">×</button><img class="logo-preview" src="${escapeHtml(control.logoData)}" alt="Logo 预览"><div class="source-line"><span class="element-badge">LOGO</span> · ${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}</div>`;
+        } else if (control.kind === "website") {
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><input class="field name-field" value="${escapeHtml(control.name)}" aria-label="按钮名称"><select class="field page-field" aria-label="按钮页面">${pageOptions}</select><button class="remove" title="移除">×</button><input class="field url-field" value="${escapeHtml(control.url)}" placeholder="https://example.com" aria-label="网站地址"><div class="source-line"><span class="element-badge">WEBSITE</span> · ${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}</div>`;
+        } else {
+          card.innerHTML = `<div class="drag-handle" title="拖动排序">⠿</div><input class="field name-field" value="${escapeHtml(control.name)}" aria-label="属性显示名"><select class="field page-field" aria-label="属性页面">${pageOptions}</select><button class="remove" title="移除">×</button><div class="source-line">${escapeHtml(control.sourceOp)}.${escapeHtml(control.source)}${control.raw ? " · 原有" : " · 新增"}</div>`;
+        }
+        const nameField = card.querySelector(".name-field");
+        if (nameField) nameField.oninput = (event) => { control.name = event.target.value; rebuildDeferred(true); };
+        const pageField = card.querySelector(".page-field");
+        if (pageField) pageField.onchange = (event) => { control.page = event.target.value; rebuild(); };
+        const countField = card.querySelector(".label-count");
+        if (countField) countField.onchange = (event) => { control.numInputs = Math.max(0, Math.floor(Number(event.target.value) || 0)); rebuild(); };
+        const toggle = card.querySelector(".label-toggle");
+        if (toggle) toggle.onclick = () => { control.expanded = !control.expanded; rebuild(); };
+        const urlField = card.querySelector(".url-field");
+        if (urlField) urlField.oninput = (event) => { control.url = event.target.value.trim(); rebuildDeferred(true); };
+        card.querySelector(".remove").onclick = () => removeControl(index);
+        card.ondragstart = (event) => { state.draggedIndex = index; card.classList.add("dragging"); event.dataTransfer.effectAllowed = "move"; };
+        card.ondragend = () => { state.draggedIndex = null; card.classList.remove("dragging"); clearDropMarks(); };
+        card.ondragover = (event) => {
+          event.preventDefault();
+          clearDropMarks();
+          const rect = card.getBoundingClientRect();
+          card.classList.add(event.clientY < rect.top + rect.height / 2 ? "drop-before" : "drop-after");
+        };
+        card.ondrop = (event) => {
+          event.preventDefault();
+          const from = state.draggedIndex;
+          if (from == null || from === index) return clearDropMarks();
+          const rect = card.getBoundingClientRect();
+          let to = index + (event.clientY >= rect.top + rect.height / 2 ? 1 : 0);
+          const [moved] = state.controls.splice(from, 1);
+          if (from < to) to--;
+          state.controls.splice(to, 0, moved);
+          rebuild();
+        };
+        controlsList.appendChild(card);
+      }
+    }
+
+    function removeControl(index) {
+      const control = state.controls[index];
+      if (!control) return;
+      if (control.kind === "label" && control.boundarySeparatorId) {
+        state.controls = state.controls.filter(item => item.id !== control.id && item.id !== control.boundarySeparatorId);
+      } else {
+        state.controls.splice(index, 1);
+        if (control.kind === "separator" && control.boundaryLabelId) {
+          const label = state.controls.find(item => item.id === control.boundaryLabelId);
+          if (label) { label.boundarySeparatorId = ""; label.numInputs = 0; }
+        }
+      }
+      rebuild();
+    }
+
+    function renderHostNodes() {
+      const select = $("hostNodeSelect");
+      const candidates = state.analysis ? state.analysis.nodes.filter(node => node.inputsOp && node.userControlsOp) : [];
+      if (!candidates.some(node => node.name === state.hostNodeName)) state.hostNodeName = candidates[0]?.name || "";
+      select.innerHTML = candidates.map(node => `<option value="${escapeHtml(node.name)}"${node.name === state.hostNodeName ? " selected" : ""}>${escapeHtml(node.path.join(" / "))}</option>`).join("");
+      select.disabled = !candidates.length;
+      for (const id of ["addLabelBtn", "addSeparatorBtn", "addMessageBtn", "addLogoBtn", "addWebsiteBtn"]) $(id).disabled = !candidates.length;
+    }
+
+    function newElement(kind, stamp, extra = {}) {
+      const config = {
+        label: ["MLLabel", "新分组"],
+        separator: ["MLSep", "Separator"],
+        message: ["MLMsg", "在这里输入给用户的信息"],
+        logo: ["MLLogo", "个人 Logo"],
+        website: ["MLWebsite", "个人网站"]
+      }[kind];
+      const [prefix, name] = config;
+      return {
+        id: `${prefix}-${stamp}`,
+        kind,
+        originalKey: "",
+        sourceOp: state.hostNodeName,
+        source: `${prefix}${stamp}`,
+        name,
+        page: "Controls",
+        originalName: "",
+        originalPage: "Controls",
+        hasName: false,
+        hasPage: false,
+        raw: "",
+        generated: true,
+        numInputs: 0,
+        expanded: true,
+        logoData: "",
+        url: "https://",
+        definition: null,
+        inputValue: null,
+        boundarySeparatorId: "",
+        boundaryLabelId: "",
+        ...extra
+      };
+    }
+
+    function createElement(kind, extra = {}) {
+      if (!state.hostNodeName) return toast("没有同时包含 Inputs 和 UserControls 的可用宿主节点", true);
+      const stamp = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+      if (kind === "label") {
+        const label = newElement("label", stamp, extra);
+        const separator = newElement("separator", `${stamp}B`, { boundaryLabelId: label.id });
+        label.boundarySeparatorId = separator.id;
+        label.numInputs = 1;
+        state.controls.push(label, separator);
+      } else state.controls.push(newElement(kind, stamp, extra));
+      rebuild();
+    }
+
+    async function imageFileToDataUrl(file) {
+      const source = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("无法读取图片"));
+        reader.readAsDataURL(file);
+      });
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("无法解析图片"));
+        img.src = source;
+      });
+      const scale = Math.min(1, 280 / Math.max(image.width, image.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL(file.type === "image/jpeg" ? "image/jpeg" : "image/png", 0.9);
+    }
+
+    function clearDropMarks() { document.querySelectorAll(".drop-before,.drop-after").forEach(el => el.classList.remove("drop-before", "drop-after")); }
+    function rebuildDeferred(preserveEditor = false) {
+      clearTimeout(rebuildDeferred.timer);
+      rebuildDeferred.timer = setTimeout(() => rebuild(preserveEditor), 180);
+    }
+
+    function validate() {
+      const checks = [];
+      try { findMatching(state.result, state.result.indexOf("{")); checks.push({ level: "ok", title: "整体括号配平", detail: "字符串、注释和嵌套花括号扫描通过" }); }
+      catch (error) { checks.push({ level: "error", title: "脚本结构损坏", detail: error.message }); }
+      let reparsed = null;
+      try {
+        reparsed = analyzeSetting(state.result);
+        checks.push({ level: "ok", title: "导出结果可重新解析", detail: `识别 ${reparsed.nodes.length} 个节点、${reparsed.controls.length} 个公开属性` });
+      } catch (error) { checks.push({ level: "error", title: "导出结果无法重新解析", detail: error.message }); }
+      if (reparsed) {
+        const expectedElements = state.controls.filter(c => c.kind !== "control");
+        const actualByKey = new Map(reparsed.controls.map(c => [controlKey(c), c]));
+        const mismatched = expectedElements.filter(c => actualByKey.get(controlKey(c))?.kind !== c.kind);
+        checks.push(mismatched.length
+          ? { level: "error", title: "元素回读不一致", detail: `${mismatched.length} 个 Label、Separator、Message、Logo 或网站按钮未按预期类型重新识别` }
+          : { level: "ok", title: "元素语义回读", detail: `${expectedElements.length} 个特殊元素类型均与导出前一致` });
+      }
+      const patches = [...state.lastPatches].sort((a, b) => a.start - b.start);
+      let originalPos = 0;
+      let resultPos = 0;
+      let rangesSafe = true;
+      for (let i = 0; i < patches.length; i++) {
+        const patch = patches[i];
+        if (patch.start < originalPos || (i && patch.start < patches[i - 1].end)) { rangesSafe = false; break; }
+        const untouched = state.original.slice(originalPos, patch.start);
+        if (state.result.slice(resultPos, resultPos + untouched.length) !== untouched) { rangesSafe = false; break; }
+        resultPos += untouched.length + patch.value.length;
+        originalPos = patch.end;
+      }
+      if (rangesSafe) rangesSafe = state.original.slice(originalPos) === state.result.slice(resultPos);
+      checks.push(rangesSafe
+        ? { level: "ok", title: "修改范围安全", detail: `仅修改 ${patches.length} 个已识别局部区块，其余原文逐字一致` }
+        : { level: "error", title: "修改越界", detail: "检测到允许区块之外存在变化或补丁区间重叠" });
+      const nodeNames = new Set(state.analysis.nodes.map(n => n.name));
+      const missing = state.controls.filter(c => !nodeNames.has(c.sourceOp));
+      checks.push(missing.length
+        ? { level: "warn", title: `${missing.length} 个 SourceOp 未在节点树中找到`, detail: missing.map(c => c.sourceOp).join("、") }
+        : { level: "ok", title: "SourceOp 引用检查", detail: "所有公开属性均能找到来源节点" });
+      const duplicates = state.controls.map(controlKey).filter((key, i, arr) => arr.indexOf(key) !== i);
+      if (duplicates.length) checks.push({ level: "warn", title: "存在重复公开属性", detail: "DaVinci 中可能显示重复控件" });
+      const invalidUrls = state.controls.filter(c => c.kind === "website" && !validWebsiteUrl(c.url));
+      checks.push(invalidUrls.length
+        ? { level: "error", title: "网站地址无效", detail: "网站按钮必须使用完整的 http:// 或 https:// 地址" }
+        : { level: "ok", title: "网站链接检查", detail: "网站按钮地址格式有效" });
+      const invalidLogos = state.controls.filter(c => c.kind === "logo" && !/^data:image\/(png|jpeg|webp);base64,/i.test(c.logoData));
+      checks.push(invalidLogos.length
+        ? { level: "error", title: "Logo 数据无效", detail: "请重新选择 PNG、JPEG 或 WebP 图片" }
+        : { level: "ok", title: "Logo 数据检查", detail: "嵌入图片格式有效" });
+      const invalidLabels = state.controls.filter((c, index) => c.kind === "label" && (!Number.isInteger(Number(c.numInputs)) || Number(c.numInputs) < 0 || index + Number(c.numInputs) >= state.controls.length));
+      checks.push(invalidLabels.length
+        ? { level: "error", title: "Label 范围越界", detail: "Label 包含数量不能超过其后的剩余项目数" }
+        : { level: "ok", title: "Label 范围检查", detail: "所有折叠分组范围有效" });
+      const outputRaw = state.original.slice(state.analysis.wrapper.operator.bodyStart, state.analysis.wrapper.operator.bodyEnd);
+      checks.push(/MainOutput1\s*=\s*InstanceOutput/.test(outputRaw)
+        ? { level: "ok", title: "主输出保持不变", detail: "原始 MainOutput1 位于未修改区域" }
+        : { level: "warn", title: "未识别 MainOutput1", detail: "文件可能使用其他输出结构，请在 DaVinci 中验证" });
+      return checks;
+    }
+
+    function renderInspector() {
+      const checks = validate();
+      const changed = state.result !== state.original;
+      $("summary").innerHTML = `<div class="stat"><span>节点</span><strong>${state.analysis.nodes.length}</strong></div><div class="stat"><span>公开属性</span><strong>${state.controls.length}</strong></div><div class="stat"><span>页面</span><strong>${state.pages.length}</strong></div><div class="stat"><span>状态</span><strong style="color:${changed ? "var(--accent)" : "var(--green)"}">${changed ? "已修改" : "原始"}</strong></div>`;
+      $("validation").innerHTML = checks.map(c => `<div class="check ${c.level}"><span>${c.level === "ok" ? "✓" : c.level === "warn" ? "!" : "×"}</span><div><strong>${escapeHtml(c.title)}</strong><small>${escapeHtml(c.detail)}</small></div></div>`).join("");
+      const oldBody = state.original.slice(state.analysis.publicInputs.bodyStart, state.analysis.publicInputs.bodyEnd).trim();
+      const newBody = buildInputsBody().trim();
+      const internalCount = Math.max(0, state.lastPatches.length - 1);
+      $("diffCode").innerHTML = `<span class="diff-old">--- 原始公开 Inputs\n${escapeHtml(oldBody || "(空)")}</span>\n\n<span class="diff-new">+++ 修改后公开 Inputs\n${escapeHtml(newBody || "(空)")}\n\n# 内部元素局部补丁：${internalCount} 个区块</span>`;
+      $("resultCode").textContent = state.result;
+      const blocked = checks.some(c => c.level === "error");
+      $("downloadBtn").disabled = blocked;
+      $("downloadDrfxBtn").disabled = blocked;
+      renderPreview();
+    }
+
+    async function loadFile(file) {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const analysis = analyzeSetting(text);
+        state.fileName = file.name;
+        state.original = text;
+        state.result = text;
+        state.analysis = analysis;
+        state.controls = analysis.controls.map(c => ({ ...c }));
+        state.pages = [...new Set(["Controls", ...state.controls.map(c => c.page).filter(Boolean)])];
+        state.hostNodeName = state.controls.find(c => c.kind !== "control" && analysis.nodes.some(node => node.name === c.sourceOp && node.inputsOp && node.userControlsOp))?.sourceOp || "";
+        state.lastPatches = [];
+        resetPreviewState();
+        $("fileMeta").textContent = `${file.name} · ${(file.size / 1024).toFixed(1)} KB · ${analysis.nodes.length} 个节点`;
+        emptyStage.hidden = true;
+        workspace.hidden = false;
+        $("resetBtn").disabled = false;
+        renderHostNodes(); renderControls(); renderTree(); renderInspector();
+        toast("文件解析成功");
+      } catch (error) {
+        console.error(error);
+        toast(`无法打开：${error.message}`, true);
+      }
+    }
+
+    function resetOriginal() {
+      if (!state.analysis) return;
+      const analysis = analyzeSetting(state.original);
+      state.analysis = analysis;
+      state.controls = analysis.controls.map(c => ({ ...c }));
+      state.pages = [...new Set(["Controls", ...state.controls.map(c => c.page).filter(Boolean)])];
+      state.hostNodeName = state.controls.find(c => c.kind !== "control" && analysis.nodes.some(node => node.name === c.sourceOp && node.inputsOp && node.userControlsOp))?.sourceOp || "";
+      state.lastPatches = [];
+      state.result = state.original;
+      resetPreviewState();
+      renderHostNodes(); renderControls(); renderTree(); renderInspector();
+      toast("已恢复到打开文件时的状态");
+    }
+
+    function downloadResult() {
+      const errors = validate().filter(c => c.level === "error");
+      if (errors.length) return toast("校验未通过，已阻止下载", true);
+      const blob = new Blob([state.result], { type: "text/plain;charset=utf-8" });
+      const base = state.fileName.replace(/\.setting$/i, "");
+      downloadBlob(blob, `${base}-edited.setting`);
+      toast("修改文件已下载，原文件未覆盖");
+    }
+
+    function downloadBlob(blob, fileName) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function writeU16(view, offset, value) { view.setUint16(offset, value, true); }
+    function writeU32(view, offset, value) { view.setUint32(offset, value >>> 0, true); }
+
+    const crcTable = (() => {
+      const table = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+        table[n] = c >>> 0;
+      }
+      return table;
+    })();
+
+    function crc32(bytes) {
+      let crc = 0xFFFFFFFF;
+      for (const byte of bytes) crc = crcTable[(crc ^ byte) & 0xFF] ^ (crc >>> 8);
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function dosDateTime(date = new Date()) {
+      const year = Math.max(1980, date.getFullYear());
+      return {
+        time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+        date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+      };
+    }
+
+    function createStoredZip(path, content) {
+      const encoder = new TextEncoder();
+      const nameBytes = encoder.encode(path.replace(/\\/g, "/"));
+      const data = encoder.encode(content);
+      const crc = crc32(data);
+      const stamp = dosDateTime();
+      const localLength = 30 + nameBytes.length + data.length;
+      const centralLength = 46 + nameBytes.length;
+      const bytes = new Uint8Array(localLength + centralLength + 22);
+      const view = new DataView(bytes.buffer);
+      let offset = 0;
+
+      writeU32(view, offset, 0x04034B50); offset += 4;
+      writeU16(view, offset, 20); offset += 2;
+      writeU16(view, offset, 0x0800); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, stamp.time); offset += 2;
+      writeU16(view, offset, stamp.date); offset += 2;
+      writeU32(view, offset, crc); offset += 4;
+      writeU32(view, offset, data.length); offset += 4;
+      writeU32(view, offset, data.length); offset += 4;
+      writeU16(view, offset, nameBytes.length); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      bytes.set(nameBytes, offset); offset += nameBytes.length;
+      bytes.set(data, offset); offset += data.length;
+
+      const centralOffset = offset;
+      writeU32(view, offset, 0x02014B50); offset += 4;
+      writeU16(view, offset, 20); offset += 2;
+      writeU16(view, offset, 20); offset += 2;
+      writeU16(view, offset, 0x0800); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, stamp.time); offset += 2;
+      writeU16(view, offset, stamp.date); offset += 2;
+      writeU32(view, offset, crc); offset += 4;
+      writeU32(view, offset, data.length); offset += 4;
+      writeU32(view, offset, data.length); offset += 4;
+      writeU16(view, offset, nameBytes.length); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU32(view, offset, 0); offset += 4;
+      writeU32(view, offset, 0); offset += 4;
+      bytes.set(nameBytes, offset); offset += nameBytes.length;
+
+      writeU32(view, offset, 0x06054B50); offset += 4;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, 0); offset += 2;
+      writeU16(view, offset, 1); offset += 2;
+      writeU16(view, offset, 1); offset += 2;
+      writeU32(view, offset, centralLength); offset += 4;
+      writeU32(view, offset, centralOffset); offset += 4;
+      writeU16(view, offset, 0);
+      return bytes;
+    }
+
+    function downloadDrfx() {
+      const errors = validate().filter(c => c.level === "error");
+      if (errors.length) return toast("校验未通过，已阻止 DRFX 打包", true);
+      const category = $("drfxCategory").value;
+      if (!["Effects", "Generators", "Titles", "Transitions"].includes(category)) return toast("DRFX 分类无效", true);
+      const base = state.fileName.replace(/\.setting$/i, "");
+      const path = `Edit/${category}/${base}.setting`;
+      const zip = createStoredZip(path, state.result);
+      downloadBlob(new Blob([zip], { type: "application/zip" }), `${base}-edited.drfx`);
+      toast(`DRFX 已生成：${category}`);
+    }
+
+    $("openBtn").onclick = $("emptyOpenBtn").onclick = () => fileInput.click();
+    fileInput.onchange = () => { loadFile(fileInput.files[0]); fileInput.value = ""; };
+    $("resetBtn").onclick = resetOriginal;
+    $("downloadBtn").onclick = downloadResult;
+    $("downloadDrfxBtn").onclick = downloadDrfx;
+    $("copyBtn").onclick = async () => { await navigator.clipboard.writeText(state.result); toast("完整结果已复制"); };
+    $("searchInput").oninput = (event) => { state.search = event.target.value; renderTree(); };
+    $("hostNodeSelect").onchange = (event) => { state.hostNodeName = event.target.value; };
+    $("addLabelBtn").onclick = () => createElement("label");
+    $("addSeparatorBtn").onclick = () => createElement("separator");
+    $("addMessageBtn").onclick = () => createElement("message");
+    $("addWebsiteBtn").onclick = () => createElement("website");
+    $("addLogoBtn").onclick = () => $("logoInput").click();
+    $("logoInput").onchange = async () => {
+      const file = $("logoInput").files[0];
+      $("logoInput").value = "";
+      if (!file) return;
+      try { createElement("logo", { logoData: await imageFileToDataUrl(file) }); }
+      catch (error) { toast(error.message, true); }
+    };
+    $("addPageBtn").onclick = () => {
+      const input = $("newPageInput");
+      const name = input.value.trim();
+      if (!name) return;
+      if (!state.pages.includes(name)) state.pages.push(name);
+      input.value = "";
+      renderControls(); renderInspector();
+    };
+    document.querySelectorAll(".tab").forEach(tab => tab.onclick = () => {
+      document.querySelectorAll(".tab").forEach(x => x.classList.toggle("active", x === tab));
+      document.querySelectorAll(".tab-panel").forEach(panel => panel.classList.toggle("active", panel.id === `${tab.dataset.tab}Panel`));
+    });
+
+    const dropCard = $("dropCard");
+    for (const target of [document.body, dropCard]) {
+      target.addEventListener("dragover", event => { event.preventDefault(); dropCard.classList.add("dragover"); });
+      target.addEventListener("dragleave", event => { if (!dropCard.contains(event.relatedTarget)) dropCard.classList.remove("dragover"); });
+      target.addEventListener("drop", event => {
+        event.preventDefault(); dropCard.classList.remove("dragover");
+        const file = [...event.dataTransfer.files].find(f => /\.setting$/i.test(f.name));
+        if (file) loadFile(file); else toast("请拖入 .setting 文件", true);
+      });
+    }
+  </script>
+</body>
+</html>
